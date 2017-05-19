@@ -1,71 +1,28 @@
-#Import the Strange Dataset
-rawdata=readLines("Wealth and Health.txt")
+require(RJSONIO)
+dat = fromJSON('Wealth and Health.txt')
 
-#Get the useful words
-data=unlist(strsplit(rawdata,"\\[\\{\"|\":\"|\",\"|\":\\[\\[|\\],\\[|\\]\\],\"|\\]\\]\\},\\{\"|\\]\\]\\}\\]"))
-data=data[which(data!="")]
-n=length(data)
+n = length(dat)
+tbls2 = NULL
 
-#Set index
-nameind=which(data=="name")
-regind=which(data=="region")
-incind=which(data=="income")
-popind=which(data=="population")
-lifind=which(data=="lifeExpectancy")
-endpoint=nameind-1
-endpoint=endpoint[2:180]
-endpoint[180]=45999
+for (i in 1:n) {
+    dti = dat[[i]]
+    dfr = initdfr
+    dfr$name = rep(dti$name, 210)
+    dfr$region = rep(dti$region, 210)
+    for (inc in dti$income) {
+        ii = which(dfr$year == as.integer(inc[1]))
+        dfr$income[ii] = inc[2]
+    }
+    for (pop in dti$population) {
+        ii = which(dfr$year == as.integer(pop[1]))
+        dfr$pop[ii] = pop[2]
+    }
+    for (life in dti$lifeExpectancy) {
+        ii = which(dfr$year == as.integer(life[1]))
+        dfr$life[ii] = life[2]
+    }
 
-name=data[nameind+1]
-region=data[regind+1]
-
-#An empty data.frame type
-initdfr=data.frame(name=rep(0,210),region=rep(0,210),year=1800:2009,income=rep(0,210),pop=rep(0,210),life=rep(0,210))
-
-#An string split function only working for the comma
-splt=function(x) return(as.numeric(unlist(strsplit(x,","))))
-
-#Linear interpolation function, for those zero data
-itpl=function(a)
-{
-	ind=which(a>0)
-	if (ind[1]>1)
-		a[1:(ind[1]-1)]=rep(a[ind[1]],ind[1]-1)
-	n=length(ind)
-	if (ind[n]<length(a))
-		a[(ind[n]+1):length(a)]=rep(a[ind[n]],length(a)-ind[n])
-	for (i in 1:(n-1))
-		a[ind[i]:ind[i+1]]=rep(a[ind[i]],ind[i+1]-ind[i]+1)+(seq(ind[i],ind[i+1],1)-ind[i])*(a[ind[i+1]]-a[ind[i]])/(ind[i+1]-ind[i])
-	return(a)
-}
-
-#Drag data information from words
-tbls=NULL
-for (i in 1:180)
-{
-	dfr=initdfr
-	dfr$name=rep(name[i],210)
-	dfr$region=rep(region[i],210)
-	for (j in (incind[i]+1):(popind[i]-1))
-	{
-		tmp=splt(data[j])
-		ii=which(dfr$year==tmp[1])
-		dfr$income[ii]=tmp[2]
-	}
-	for (j in (popind[i]+1):(lifind[i]-1))
-	{
-		tmp=splt(data[j])
-		ii=which(dfr$year==tmp[1])
-		dfr$pop[ii]=tmp[2]
-	}
-	for (j in (lifind[i]+1):endpoint[i])
-	{
-		tmp=splt(data[j])
-		ii=which(dfr$year==tmp[1])
-		dfr$life[ii]=tmp[2]
-	}
-	
-	tbls=rbind(tbls,dfr)
+    tbls2 = rbind(tbls2, dfr)
 }
 
 #Two country with only one record, meaningless
